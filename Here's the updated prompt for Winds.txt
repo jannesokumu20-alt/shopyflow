@@ -1,0 +1,100 @@
+Here's the updated prompt for Windsurf with your real PayHero credentials:
+
+---
+
+PROMPT FOR WINDSURF (Fix All Critical Issues + Real Credentials)
+
+```
+You just completed a code audit on DukaPOS. I need you to fix ALL critical issues. Fix ONLY what is listed below. Do NOT refactor, rename, restructure, or touch anything else.
+
+== FIX 1: CREATE .env.example FILE ==
+Create a file called .env.example at the root of the project with these placeholder values:
+VITE_SUPABASE_URL=your_supabase_url_here
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+PAYHERO_API_USERNAME=your_payhero_api_username_here
+PAYHERO_API_PASSWORD=your_payhero_api_password_here
+PAYHERO_ACCOUNT_ID=your_payhero_account_id_here
+PAYHERO_PLATFORM_CHANNEL_ID=your_platform_channel_id_here
+LOVABLE_PROJECT_ID=your_lovable_project_id_here
+SUBSCRIPTION_AMOUNT=499
+TRIAL_DAYS=7
+
+== FIX 2: UPDATE .env WITH REAL PAYHERO CREDENTIALS ==
+In the existing .env file, add/update these values with the REAL credentials:
+
+PAYHERO_API_USERNAME=nDv3fr1Kf04mOerIYmEB
+PAYHERO_API_PASSWORD=8ncz7PbFdkqa4yeO3EjNDqUwy2tvb5qKbe7396Tp
+PAYHERO_ACCOUNT_ID=8707
+PAYHERO_PLATFORM_CHANNEL_ID=8171
+SUBSCRIPTION_AMOUNT=499
+TRIAL_DAYS=7
+
+For the Supabase values (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, LOVABLE_PROJECT_ID):
+- If they already have real values in .env, KEEP those values but make sure they're not exposed in any .env.example
+- If they're missing, add them with placeholder values for now
+
+== FIX 3: ADD .gitignore ENTRY ==
+Check if .gitignore exists. If it does, ensure .env is listed. If .env is not listed, add it.
+If .gitignore does not exist, create it with:
+.env
+node_modules
+dist
+.cache
+
+== FIX 4: WEBHOOK SIGNATURE VERIFICATION ==
+In src/routes/api/public/webhooks/payhero.ts, add a basic verification check:
+- At the top of the POST handler, check for a header called "x-payhero-signature" or similar
+- If the header exists, log it for now
+- Add a TODO comment: "TODO: Implement full PayHero signature verification"
+- Do NOT block requests — just log the header
+
+== FIX 5: RATE LIMITING ON WEBHOOK ==
+In src/routes/api/public/webhooks/payhero.ts, add a simple in-memory rate limiter:
+- Create a Map to track request counts by IP
+- Allow maximum 100 requests per minute per IP
+- If exceeded, return 429 Too Many Requests
+
+== FIX 6: STOCK DECREMENT RACE CONDITION ==
+Create a SQL migration file:
+supabase/migrations/20260523_add_stock_decrement_function.sql
+
+With this PostgreSQL function:
+```sql
+CREATE OR REPLACE FUNCTION decrement_stock(product_id UUID, quantity INTEGER)
+RETURNS INTEGER AS $$
+DECLARE
+  current_stock INTEGER;
+  new_stock INTEGER;
+BEGIN
+  SELECT stock INTO current_stock FROM products WHERE id = product_id FOR UPDATE;
+  IF current_stock < quantity THEN
+    RAISE EXCEPTION 'Insufficient stock for product %', product_id;
+  END IF;
+  new_stock := current_stock - quantity;
+  UPDATE products SET stock = new_stock, updated_at = NOW() WHERE id = product_id;
+  RETURN new_stock;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+Then update the webhook handler in src/routes/api/public/webhooks/payhero.ts:
+
+· Replace the current SELECT-then-UPDATE stock decrement logic
+· Use: await supabaseAdmin.rpc('decrement_stock', { product_id: item.product_id, quantity: item.quantity })
+· This is atomic and prevents race conditions
+
+== RULES ==
+
+· Fix ONLY these 6 items
+· Do NOT change anything else
+· Do NOT refactor or restructure
+· Do NOT add unnecessary comments
+· Keep all existing functionality intact
+· Make minimal changes
+
+```
+
+---
+
+This gives Windsurf your real PayHero details for `.env`, keeps Supabase values as-is, and fixes all 6 critical issues. Paste it in and let it work.
